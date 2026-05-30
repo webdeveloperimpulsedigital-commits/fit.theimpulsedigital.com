@@ -269,6 +269,7 @@ async function sendMail(accessToken: string, lead: LeadRecord, stage: Stage, lin
   const fromEmail = process.env.ZOHO_MAIL_FROM_EMAIL;
   const fromName = process.env.ZOHO_MAIL_FROM_NAME || "Adwait";
   const replyTo = process.env.ZOHO_MAIL_REPLY_TO || fromEmail;
+  const useOrgEmail = process.env.ZOHO_MAIL_ORG_EMAIL === "true";
 
   if (!fromEmail) throw new Error("ZOHO_MAIL_FROM_EMAIL is not configured on the server.");
 
@@ -283,11 +284,12 @@ async function sendMail(accessToken: string, lead: LeadRecord, stage: Stage, lin
       data: [
         {
           from: { email: fromEmail, user_name: fromName },
-          to: [{ email: lead.Email }],
-          reply_to: { email: replyTo },
+          to: [{ email: lead.Email, user_name: lead.Full_Name || lead.Company || "Lead" }],
+          reply_to: { email: replyTo, user_name: fromName },
           subject: config.subject,
           content: config.body(lead, link).replace(/\n/g, "<br>"),
-          org_email: true,
+          mail_format: "html",
+          org_email: useOrgEmail,
         },
       ],
     }),
@@ -297,7 +299,8 @@ async function sendMail(accessToken: string, lead: LeadRecord, stage: Stage, lin
   const data = await response.json().catch(() => ({}));
   const result = data?.data?.[0];
   if (!response.ok || result?.status === "error") {
-    throw new Error(result?.message || "Zoho CRM rejected the email send request.");
+    const detail = result?.message || result?.code || data?.message || "Zoho CRM rejected the email send request.";
+    throw new Error(`Zoho CRM rejected the email send request: ${detail}`);
   }
 }
 
@@ -363,13 +366,7 @@ async function handleWebhook(request: Request) {
 }
 
 export async function GET(request: Request) {
-  try {
-    return await handleWebhook(request);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Project Alignment email automation failed.";
-    const status = message.includes("Unauthorized") ? 401 : message.includes("Missing") || message.includes("Invalid") ? 400 : 500;
-    return NextResponse.json({ error: message }, { status });
-  }
+  return NextResponse.json({ error: "Method not allowed." }, { status: 405 });
 }
 
 export async function POST(request: Request) {

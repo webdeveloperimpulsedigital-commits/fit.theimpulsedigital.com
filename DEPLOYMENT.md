@@ -27,6 +27,7 @@ PROJECT_ALIGNMENT_FORM_URL=https://fit.theimpulsedigital.com
 ZOHO_MAIL_FROM_EMAIL=
 ZOHO_MAIL_FROM_NAME=Adwait
 ZOHO_MAIL_REPLY_TO=
+ZOHO_MAIL_ORG_EMAIL=false
 ```
 
 ## Build Commands
