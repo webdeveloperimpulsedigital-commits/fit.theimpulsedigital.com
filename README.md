@@ -35,6 +35,7 @@ Real credentials must only be added on the server or Hostinger environment panel
 - `app/page.tsx`: Project Alignment form page.
 - `app/page.module.css`: Isolated page styling.
 - `app/api/project-fit-validation/route.ts`: Server-side validation and Zoho CRM update route.
+- `app/api/project-alignment-email/route.ts`: Server-side Project Alignment email sequence webhook.
 - `.env.example`: Required server-side environment variables.
 - `DEPLOYMENT.md`: Hostinger deployment checklist.
 
@@ -49,3 +50,21 @@ Lookup order:
 3. submitted work email
 
 If no matching Lead exists, the API returns an error and does not create a new Lead.
+
+## Email Automation Behavior
+
+The Project Alignment email sequence is handled by a server-side webhook route. Zoho CRM workflows should call:
+
+```text
+https://fit.theimpulsedigital.com/api/project-alignment-email
+```
+
+with:
+
+```text
+secret=PROJECT_ALIGNMENT_WEBHOOK_SECRET
+stage=1|2|3|4
+lead_id=ZOHO_LEAD_ID
+```
+
+Before sending, the route re-checks the Lead in Zoho and suppresses the email if the Lead is already submitted, paused, stopped, in manual review, disqualified, duplicate, converted, or not marked as `Website Contact Us`.

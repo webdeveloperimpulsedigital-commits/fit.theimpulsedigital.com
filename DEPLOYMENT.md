@@ -22,6 +22,11 @@ ZOHO_CLIENT_SECRET=
 ZOHO_REFRESH_TOKEN=
 ZOHO_API_BASE=https://www.zohoapis.in/crm/v7
 ZOHO_TOKEN_URL=https://accounts.zoho.in/oauth/v2/token
+PROJECT_ALIGNMENT_WEBHOOK_SECRET=
+PROJECT_ALIGNMENT_FORM_URL=https://fit.theimpulsedigital.com
+ZOHO_MAIL_FROM_EMAIL=
+ZOHO_MAIL_FROM_NAME=Adwait
+ZOHO_MAIL_REPLY_TO=
 ```
 
 ## Build Commands
@@ -59,6 +64,30 @@ Because `output: "standalone"` is enabled, production builds generate a standalo
 ```bash
 node .next/standalone/server.js
 ```
+
+## Project Alignment Email Automation
+
+The email automation webhook lives at:
+
+```text
+/api/project-alignment-email
+```
+
+It is intentionally server-side only. Zoho CRM workflow webhooks should send:
+
+- `secret`: the value of `PROJECT_ALIGNMENT_WEBHOOK_SECRET`
+- `stage`: `1`, `2`, `3`, or `4`
+- `lead_id`: the Zoho CRM Lead ID
+
+The route uses Zoho CRM's Send Mail API and then updates:
+
+- `Project_Fit_Email_Status`
+- `Project_Fit_Last_Sent_Date`
+- `Project_Fit_Reminder_Count`
+- `Project_Fit_Form_Link`
+- `Project_Fit_Sequence_Entered_Date`, for Email 01
+
+The route always re-checks stop criteria before sending. This protects against stale delayed workflow actions.
 
 ## Safe Production Test
 

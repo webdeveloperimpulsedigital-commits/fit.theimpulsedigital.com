@@ -1,0 +1,16 @@
+*** Begin Patch
+*** Update File: /Volumes/Data/impulsedigital_v3/components/Contact.tsx
+@@
+               <input type="text" style={{display:'none'}} name="actionType" value="TGVhZHM=" readOnly />
+               <input type="text" style={{display:'none'}} name="returnURL" value="https://www.theimpulsedigital.com/thank-you/" readOnly />
++              <input type="hidden" name="Lead Source" value="Website Contact Us" readOnly />
+               {/* Do not remove this code. */}
+               <input type="text" style={{display:'none'}} id="ldeskuid" name="ldeskuid" readOnly />
+*** Update File: /Volumes/Data/impulsedigital_v3/components/pages/ContactUs.tsx
+@@
+               <input type="text" style={{display:'none'}} name="actionType" value="TGVhZHM=" readOnly />
+               <input type="text" style={{display:'none'}} name="returnURL" value="https://www.theimpulsedigital.com/thank-you/" readOnly />
++              <input type="hidden" name="Lead Source" value="Website Contact Us" readOnly />
+               {/* Do not remove this code. */}
+               <input type="text" style={{display:'none'}} id="ldeskuid" name="ldeskuid" readOnly />
+*** End Patch
