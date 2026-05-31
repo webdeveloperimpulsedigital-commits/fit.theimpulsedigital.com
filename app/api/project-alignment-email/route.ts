@@ -8,6 +8,7 @@ type LeadRecord = {
   id: string;
   Email?: string;
   Company?: string;
+  First_Name?: string;
   Full_Name?: string;
   Lead_Source?: string;
   Lead_Status?: string;
@@ -38,7 +39,7 @@ const STAGES: Record<
     status: "Email 01 Sent",
     reminderCount: 0,
     body: (lead, link) => [
-      "Hi,",
+      getGreeting(lead),
       "",
       "Thank you for writing to Impulse Digital.",
       "",
@@ -61,8 +62,8 @@ const STAGES: Record<
     status: "Email 02 Sent",
     reminderCount: 1,
     expectedPreviousStatus: "Email 01 Sent",
-    body: (_lead, link) => [
-      "Hi,",
+    body: (lead, link) => [
+      getGreeting(lead),
       "",
       "Sharing this once again so we can take your inquiry forward with the right context.",
       "",
@@ -81,8 +82,8 @@ const STAGES: Record<
     status: "Email 03 Sent",
     reminderCount: 2,
     expectedPreviousStatus: "Email 02 Sent",
-    body: (_lead, link) => [
-      "Hi,",
+    body: (lead, link) => [
+      getGreeting(lead),
       "",
       "Just checking in once before we pause this for now.",
       "",
@@ -102,7 +103,7 @@ const STAGES: Record<
     reminderCount: 3,
     expectedPreviousStatus: "Email 03 Sent",
     body: (lead, link) => [
-      "Hi,",
+      getGreeting(lead),
       "",
       "Circling back on this once more.",
       "",
@@ -123,6 +124,19 @@ const STAGES: Record<
 function text(value: unknown, maxLength: number) {
   if (typeof value !== "string") return "";
   return value.trim().slice(0, maxLength);
+}
+
+function getGreetingName(lead: LeadRecord) {
+  const candidate = text(lead.First_Name, 40) || text(lead.Full_Name, 120).split(/\s+/)[0] || "";
+  const cleaned = candidate.replace(/[^\p{L}.'-]/gu, "");
+
+  if (cleaned.length < 2 || cleaned.length > 40) return "";
+  return cleaned;
+}
+
+function getGreeting(lead: LeadRecord) {
+  const name = getGreetingName(lead);
+  return name ? `Hi ${name},` : "Hi there,";
 }
 
 function toZohoDateTime(date = new Date()) {
@@ -199,6 +213,7 @@ async function getLead(accessToken: string, leadId: string) {
     "id",
     "Email",
     "Company",
+    "First_Name",
     "Full_Name",
     "Lead_Source",
     "Lead_Status",
