@@ -246,6 +246,15 @@ function toZohoDateTime(date = new Date()) {
   return `${ist.toISOString().slice(0, 19)}+05:30`;
 }
 
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function buildQualificationNotes(payload: ReturnType<typeof validatePayload>) {
   return [
     "Project Fit Validation submitted.",
@@ -420,6 +429,70 @@ async function updateLead(accessToken: string, leadId: string, payload: ReturnTy
   }
 }
 
+async function sendInternalSubmissionNotification(
+  accessToken: string,
+  leadId: string,
+  payload: ReturnType<typeof validatePayload>,
+) {
+  const fromEmail = process.env.ZOHO_MAIL_FROM_EMAIL;
+  const fromName = process.env.ZOHO_MAIL_FROM_NAME || "Adwait";
+  const replyTo = process.env.ZOHO_MAIL_REPLY_TO || fromEmail;
+  const useOrgEmail = process.env.ZOHO_MAIL_ORG_EMAIL === "true";
+  const notifyEmail = process.env.PROJECT_ALIGNMENT_NOTIFY_EMAIL || "adwait@theimpulsedigital.com";
+
+  if (!fromEmail) throw new Error("ZOHO_MAIL_FROM_EMAIL is not configured on the server.");
+
+  const leadSummary = [
+    ["Lead", payload.fullName],
+    ["Company", payload.companyName],
+    ["Email", payload.workEmail],
+    ["Phone", payload.phoneNumber],
+    ["Website", payload.website || "Not shared"],
+    ["Investment range", payload.expectedInvestmentRange],
+    ["Start timeline", payload.startTimeline],
+  ];
+
+  const content = [
+    "<p>A lead has submitted the Project Alignment form.</p>",
+    "<table cellpadding=\"6\" cellspacing=\"0\" style=\"border-collapse:collapse;\">",
+    ...leadSummary.map(
+      ([label, value]) =>
+        `<tr><td><strong>${escapeHtml(label)}</strong></td><td>${escapeHtml(value)}</td></tr>`,
+    ),
+    "</table>",
+    "<p>Open the lead in Zoho CRM to review the full responses.</p>",
+  ].join("");
+
+  const response = await fetch(`${ZOHO_API_BASE}/Leads/${encodeURIComponent(leadId)}/actions/send_mail`, {
+    method: "POST",
+    headers: {
+      Authorization: `Zoho-oauthtoken ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      data: [
+        {
+          from: { email: fromEmail, user_name: fromName },
+          to: [{ email: notifyEmail, user_name: "Adwait" }],
+          reply_to: replyTo ? { email: replyTo, user_name: fromName } : undefined,
+          subject: `Project Alignment submitted: ${payload.fullName}`,
+          content,
+          mail_format: "html",
+          org_email: useOrgEmail,
+        },
+      ],
+    }),
+    cache: "no-store",
+  });
+
+  const data = await response.json().catch(() => ({}));
+  const result = data?.data?.[0];
+  if (!response.ok || result?.status === "error") {
+    const detail = result?.message || result?.code || data?.message || "Zoho CRM rejected the internal notification.";
+    throw new Error(`Zoho CRM rejected the internal notification: ${detail}`);
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as Payload;
@@ -437,6 +510,11 @@ export async function POST(request: Request) {
     }
 
     await updateLead(accessToken, leadId, payload);
+    try {
+      await sendInternalSubmissionNotification(accessToken, leadId, payload);
+    } catch (notificationError) {
+      console.error("Project Alignment internal notification failed:", notificationError);
+    }
     return NextResponse.json({ success: true });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Something went wrong while submitting the form.";
